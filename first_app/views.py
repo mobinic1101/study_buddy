@@ -7,8 +7,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 
-from .forms import RoomForm
-from .models import Room, Topic, User, Message
+from .forms import RoomForm, UpdateUserForm
+from .models import Room, Topic, User, Message, UserProfile
 
 
 def register_user(request):
@@ -242,3 +242,21 @@ def user_profile(request, primary_key):
         "url": url,
     }
     return render(request, "first_app/user_profile.html", context)
+
+
+@login_required(login_url="/login")
+def update_user(request):
+    user = request.user
+    form = UpdateUserForm(instance=user)
+
+    if request.method == "POST":
+        form = UpdateUserForm(instance=user, data=request.POST)
+        if form.is_valid():
+            profile_pic = request.FILES.get("profile_pic")
+            UserProfile(user=user, image=profile_pic).save()
+            form.save()
+            return redirect("user_profile", user.id)
+        messages.error(request, "an error occurred. Please try agin")
+
+    context = {"form": form}
+    return render(request, "first_app/update_user.html", context)

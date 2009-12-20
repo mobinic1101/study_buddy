@@ -12,14 +12,14 @@
         <div class="profile">
           <div class="profile__avatar">
             <div class="avatar avatar--large active">
-              <img src="https://randomuser.me/api/portraits/men/11.jpg" />
+              <img src="{{user.user_profile.get_image_url}}" />
             </div>
           </div>
           <div class="profile__info">
             <h3>{{user.username|capfirst}}</h3>
             <p>@{{user.username}}</p>
             {% if request.user == user%}
-            <a href="edit-user.html" class="btn btn--main btn--pill">Edit Profile</a>
+            <a href="{% url 'update_user' %}" class="btn btn--main btn--pill">Edit Profile</a>
             {% endif %}
           </div>
 <!--           <div class="profile__about">

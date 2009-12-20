@@ -5,7 +5,10 @@ from django.db.models import (
     ForeignKey,
     DateTimeField,
     ManyToManyField,
+    ImageField,
+    OneToOneField
 )
+from django.conf import settings
 from django.contrib.auth.models import User
 
 
@@ -44,3 +47,13 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["-created", "-updated"]
+
+    
+class UserProfile(models.Model):
+    user = OneToOneField(to=User, on_delete=models.CASCADE, related_name="user_profile")
+    image = ImageField(upload_to="profile_pics/", null=True, blank=True)
+
+    @property
+    def get_image_url(self):
+        return self.image_url.url
+        
