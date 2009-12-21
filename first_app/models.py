@@ -4,6 +4,7 @@ from django.db.models import (
     TextField,
     ForeignKey,
     DateTimeField,
+    ManyToManyField
 )
 from django.contrib.auth.models import User
 
@@ -20,7 +21,7 @@ class Room(models.Model):
     topic = ForeignKey(to=Topic, on_delete=models.SET_NULL, null=True)
     name = CharField(max_length=200)
     description = TextField(null=True, blank=True)
-    # participants =
+    participants = ManyToManyField(to=User, related_name="participants", blank=True)
     updated = DateTimeField(auto_now=True)
     created = DateTimeField(auto_now_add=True)
 

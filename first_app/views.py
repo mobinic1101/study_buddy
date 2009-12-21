@@ -83,9 +83,20 @@ def home(request):
 
 def room(request, primary_key):
     room = Room.objects.get(id=primary_key)
-    comments = Message.objects.filter(room__id=primary_key).order_by("-created")
-    data = {"room": room, "comments": comments}
+    comments = Message.objects.filter(room__id=primary_key).order_by("created")
 
+    if request.method == "POST":
+        body = request.POST.get("body")
+        Message.objects.create(
+            user=request.user,
+            room = room,
+            body = body
+        )
+        room.participants.add(request.user)
+        return redirect("room", primary_key=primary_key)
+
+    participants = room.participants.all()
+    data = {"room": room, "comments": comments, "participants": participants}
     return render(request, "first_app/room.html", data)
 
 
