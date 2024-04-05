@@ -1,0 +1,5 @@
+{
+  "python.analysis.typeCheckingMode": "basic",
+  "python.formatting.provider": "black",
+  "C_Cpp.default.compilerPath": "e:\\Windows\\code\\msys64\\clang32.exe"
+}
