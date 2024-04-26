@@ -70,29 +70,36 @@ def home(request):
         else Room.objects.all()
     )
     rooms_count = rooms.count()
-    return render(
-        request,
-        "first_app/home.html",
-        {
-            "rooms": rooms.order_by("-created", "-updated"),
-            "topics": topics,
-            "rooms_count": rooms_count,
-        },
-    )
+
+    context = {
+        "rooms": rooms.order_by("-created", "-updated"),
+        "topics": topics,
+        "rooms_count": rooms_count,
+    }
+
+    if request.user.is_authenticated:
+        user_participated_rooms = request.user.participants.all().values_list(
+            "id", flat=True
+        )
+        room_messages = []
+        for room_id in user_participated_rooms:
+            room_messages.append(Message.objects.filter(room__id=room_id).first())
+        room_messages.sort(key=lambda message: message.id, reverse=True)
+
+        context["room_messages"] = room_messages
+
+    return render(request, "first_app/home.html", context)
 
 
 def room(request, primary_key):
     room = Room.objects.get(id=primary_key)
-    comments = Message.objects.filter(room__id=primary_key).order_by("created")
+    comments = Message.objects.filter(room__id=primary_key).order_by("-created")
 
     if request.method == "POST":
         body = request.POST.get("body")
-        Message.objects.create(
-            user=request.user,
-            room = room,
-            body = body
-        )
-        room.participants.add(request.user)
+        Message.objects.create(user=request.user, room=room, body=body)
+        if not room.participants.filter(id=request.user.id).exists():
+            room.participants.add(request.user)
         return redirect("room", primary_key=primary_key)
 
     participants = room.participants.all()
@@ -129,10 +136,37 @@ def update_room(request, primary_key):
 
 @login_required(login_url="/login")
 def delete_room(request, primary_key):
-    room = Room.objects.get(id=primary_key)
+    room = Room.objects.filter(id=primary_key)
+
+    if not room.exists():
+        return HttpResponse("Page not found")
+
+    room = room[0]
     if request.user.username != room.host.username:  # type: ignore
         return HttpResponse("You are not allowed to be there!!!")
     if request.method == "POST":
         room.delete()
         return redirect("home")
     return render(request, "first_app/delete.html", {"object": room})
+
+
+@login_required(login_url="/login")
+def delete_message(request, primary_key):
+    primary_key = int(primary_key)
+    message = Message.objects.filter(id=primary_key)
+
+    if not message.exists():
+        return HttpResponse("Page not found")
+
+    message = message[0]
+    if request.user.username == message.user.username:
+        if request.method == "POST":
+            message.delete()
+            return redirect(to="room", primary_key=message.room.id)  # type: ignore
+    else:
+        return HttpResponse(
+            "You are not allowed to be here. <p>Probably because you are not the owner of this message you want to delete."
+        )
+
+    context = {"object": message}
+    return render(request, "first_app/delete.html", context)

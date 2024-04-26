@@ -4,7 +4,7 @@ from django.db.models import (
     TextField,
     ForeignKey,
     DateTimeField,
-    ManyToManyField
+    ManyToManyField,
 )
 from django.contrib.auth.models import User
 
@@ -38,3 +38,6 @@ class Message(models.Model):
 
     def __str__(self):
         return self.body[0:50]
+
+    class Meta:
+        ordering = ["-created", "-updated"]
