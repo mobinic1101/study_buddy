@@ -58,16 +58,14 @@ def logout_user(request):
 
 def home(request):
     q = request.GET.get("q")
+    q = "" if not q else q
+    print(q)
 
     topics = Topic.objects.all()
-    rooms = (
-        Room.objects.filter(
-            Q(topic__name__icontains=q)
-            | Q(name__icontains=q)
-            | Q(host__username__icontains=q)
-        )
-        if q
-        else Room.objects.all()
+    rooms = Room.objects.filter(
+        Q(topic__name__icontains=q)
+        | Q(name__icontains=q)
+        | Q(host__username__icontains=q)
     )
     rooms_count = rooms.count()
 
@@ -78,13 +76,10 @@ def home(request):
     }
 
     if request.user.is_authenticated:
-        user_participated_rooms = request.user.participants.all().values_list(
-            "id", flat=True
-        )
-        room_messages = []
-        for room_id in user_participated_rooms:
-            room_messages.append(Message.objects.filter(room__id=room_id).first())
-        room_messages.sort(key=lambda message: message.id, reverse=True)
+        user_participated_rooms = request.user.participants.filter(
+            Q(name__icontains=q) | Q(topic__name__icontains=q)
+        ).values_list("id", flat=True)
+        room_messages = Message.objects.filter(room__id__in=user_participated_rooms)
 
         context["room_messages"] = room_messages
 
@@ -113,7 +108,9 @@ def create_room(request):
     if request.method == "POST":
         form = RoomForm(data=request.POST)
         if form.is_valid():
-            form.save()
+            room = form.save(commit=False)
+            room.host = request.user
+            room.save()
             return redirect("home")
 
     return render(request, "first_app/room_form.html", {"form": form_to_render.as_p()})
@@ -170,3 +167,18 @@ def delete_message(request, primary_key):
 
     context = {"object": message}
     return render(request, "first_app/delete.html", context)
+
+
+def user_profile(request, primary_key):
+    user = User.objects.get(id=primary_key)
+    rooms = Room.objects.filter(host__id=primary_key)
+    topics = Topic.objects.all()
+    room_messages = Message.objects.filter(user__id=primary_key)
+
+    context = {
+        "user": user,
+        "rooms": rooms,
+        "topics": topics,
+        "room_messages": room_messages,
+    }
+    return render(request, "first_app/user_profile.html", context)

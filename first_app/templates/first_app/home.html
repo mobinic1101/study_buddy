@@ -11,56 +11,16 @@
 
 <div class="home-container">
   <!-- side bar -->
-  <div>
-    <h3>Browse Topics</h3>
-    <hr />
-
-    <a href="{% url 'home' %}">All</a>
-    {% for topic in topics %}
-    <div>
-      <a href="{% url 'home' %}?q={{topic}}">{{topic}}</a>
-    </div>
-    {% endfor %}
-    <hr />
-  </div>
+  <div>{% include "first_app/componets/topics_componet.html" %}</div>
 
   <!-- rooms -->
   <div>
     <h5>{{rooms_count}} Rooms Available</h5>
     <a href="{% url 'create_room' %}">Create Room</a>
-    {% for room in rooms %}
-    <div>
-      {% if request.user.username == room.host.username %}
-      <a href="{% url 'update_room' room.id %}">Update</a>
-      <a href="{% url 'delete_room' room.id %}">Delete</a>
-      {% endif %}
-      <span>@{{room.host.username}}</span>
-      <h5>{{room.id}} -- <a href="{% url 'room' room.id%}">{{room}}</a></h5>
-      <small>{{room.topic}}</small>
-      <hr />
-      
-    </div>
-    {% endfor %}
+    {% include "first_app/componets/feed_componet.html" %}
   </div>
-
   <!-- Recent activity -->
-  {% if request.user.is_authenticated %}
-  <div>
-    <h3>Recent activity</h3>
-    <hr/>
-    {% for message in room_messages %}
-    <div>
-      <small>@{{message.user.username}} {{message.created | timesince}}</small>
-      <small>replied to: <a href="{% url 'room' message.room.id %}">{{message.room}}</a></small>
-      <p>{{message}}</p>
-      {% if request.user.username == message.user.username %}
-      <a href="{% url 'delete_message' message.id %}">Delete</a>
-      {% endif %}
-    </div>
-    <hr>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {% include "first_app/componets/activity_componet.html" %}
 </div>
 
 {% endblock %}

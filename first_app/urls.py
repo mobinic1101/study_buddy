@@ -14,4 +14,5 @@ urlpatterns = [
     path(
         "delete_message/<str:primary_key>", views.delete_message, name="delete_message"
     ),
+    path("user_profile/<str:primary_key>", views.user_profile, name="user_profile"),
 ]
