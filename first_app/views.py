@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
+from django.urls import reverse
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.template import defaultfilters
 
 from .forms import RoomForm
 from .models import Room, Topic, User, Message
@@ -68,11 +70,16 @@ def home(request):
         | Q(host__username__icontains=q)
     )
     rooms_count = rooms.count()
+    rooms_count_all = Room.objects.all().count()
+    url = reverse("home")
 
     context = {
+        "view_name": home.__name__,
         "rooms": rooms.order_by("-created", "-updated"),
         "topics": topics,
         "rooms_count": rooms_count,
+        "rooms_count_all": rooms_count_all,
+        "url": url,
     }
 
     if request.user.is_authenticated:
@@ -80,9 +87,8 @@ def home(request):
             Q(name__icontains=q) | Q(topic__name__icontains=q)
         ).values_list("id", flat=True)
         room_messages = Message.objects.filter(room__id__in=user_participated_rooms)
-
+        # type: ignore
         context["room_messages"] = room_messages
-
     return render(request, "first_app/home.html", context)
 
 
@@ -113,7 +119,7 @@ def create_room(request):
             room.save()
             return redirect("home")
 
-    return render(request, "first_app/room_form.html", {"form": form_to_render.as_p()})
+    return render(request, "first_app/room_form.html", {"form": form_to_render})
 
 
 @login_required(login_url="/login")
@@ -159,7 +165,7 @@ def delete_message(request, primary_key):
     if request.user.username == message.user.username:
         if request.method == "POST":
             message.delete()
-            return redirect(to="room", primary_key=message.room.id)  # type: ignore
+            return redirect(to="home")  # type: ignore
     else:
         return HttpResponse(
             "You are not allowed to be here. <p>Probably because you are not the owner of this message you want to delete."
@@ -170,15 +176,53 @@ def delete_message(request, primary_key):
 
 
 def user_profile(request, primary_key):
+    def get_topics(rooms):
+        """
+        rooms: QuerySet | a list of room objects\n
+        extracts all of the topics exist in the rooms\n
+        -> tuple([topic, topic, ...], {topic: n, topic: n, ...})
+        """
+        topics = []
+        topics_count = {}
+        for room in rooms:
+            topic = room.topic
+            if topic not in topics:
+                topics.append(topic)
+                topics_count[topic.name] = 1
+            else:
+                topics_count[topic.name] += 1
+        return topics, topics_count
+
     user = User.objects.get(id=primary_key)
-    rooms = Room.objects.filter(host__id=primary_key)
-    topics = Topic.objects.all()
+
+    # a quick security check!
+    if request.user.id == user.id:  # type: ignore
+        if not request.user.is_authenticated:
+            return redirect(to="login")
+
+    q = request.GET.get("q")
+    all_rooms = Room.objects.filter(host__id=primary_key)
+
+    rooms = (
+        all_rooms
+        if not q
+        else Room.objects.filter(
+            Q(host__id=primary_key) & Q(topic__name__icontains=q) | Q(name__icontains=q)
+        )
+    )
+    topics, topics_count = get_topics(all_rooms)
     room_messages = Message.objects.filter(user__id=primary_key)
+    url = reverse("user_profile", args=primary_key)
+    print(topics_count)
 
     context = {
+        "view_name": user_profile.__name__,
         "user": user,
         "rooms": rooms,
         "topics": topics,
+        "topics_count": topics_count,
         "room_messages": room_messages,
+        "rooms_count_all": all_rooms.count(),
+        "url": url,
     }
     return render(request, "first_app/user_profile.html", context)

@@ -1,0 +1,26 @@
+{% extends "base.html" %} {% block title %}Home{% endblock %}
+
+<h1>FUCK</h1>
+{% block content %}
+<style>
+  .home-container {
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+  }
+</style>
+
+<div class="home-container">
+  <!-- side bar -->
+  <div>{% include "first_app/componets/topics_componet.html" %}</div>
+
+  <!-- rooms -->
+  <div>
+    <h5>{{rooms_count}} Rooms Available</h5>
+    <a href="{% url 'create_room' %}">Create Room</a>
+    {% include "first_app/componets/feed_componet.html" %}
+  </div>
+  <!-- Recent activity -->
+  {% include "first_app/componets/activity_componet.html" %}
+</div>
+
+{% endblock %}
