@@ -1,4 +1,1 @@
-name = "mobin"
-
-
-print("hello %s" % name)
+print("at MASTER branch")
