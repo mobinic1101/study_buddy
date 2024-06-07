@@ -6,7 +6,6 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.template import defaultfilters
 
 from .forms import RoomForm
 from .models import Room, Topic, User, Message
@@ -110,31 +109,48 @@ def room(request, primary_key):
 
 @login_required(login_url="/login")
 def create_room(request):
+    topics = Topic.objects.all()
+
     form_to_render = RoomForm()
     if request.method == "POST":
-        form = RoomForm(data=request.POST)
-        if form.is_valid():
-            room = form.save(commit=False)
-            room.host = request.user
-            room.save()
-            return redirect("home")
+        topic, _ = Topic.objects.get_or_create(name=request.POST.get("topic"))
 
-    return render(request, "first_app/room_form.html", {"form": form_to_render})
+        room = Room(
+            host=request.user,
+            topic=topic,
+            name=request.POST.get("name"),
+            description=request.POST.get("description"),
+        )
+        room.save()
+
+        return redirect("home")
+
+    context = {"template_name": "Create", "form": form_to_render, "topics": topics}
+    return render(request, "first_app/room_form.html", context)
 
 
 @login_required(login_url="/login")
 def update_room(request, primary_key):
     room = Room.objects.get(id=primary_key)
+
+    # security check
     if request.user.username != room.host.username:  # type: ignore
         return HttpResponse("You are not allowed to be there!!!")
+
     form_to_render = RoomForm(instance=room)
     if request.method == "POST":
-        form = RoomForm(data=request.POST, instance=room)
-        if form.is_valid():
-            form.save()
-            print("form is valid")
-            return redirect("home")
-    return render(request, "first_app/room_form.html", {"form": form_to_render.as_p()})
+        topic, _ = Topic.objects.get_or_create(name=request.POST.get("topic"))
+
+        room.name = request.POST.get("name")
+        room.topic = topic
+        room.description = request.POST.get("description")
+
+        room.save()
+
+        return redirect("home")
+
+    context = {"form": form_to_render, "template_name": "Update", "topic": room.topic}
+    return render(request, "first_app/room_form.html", context)
 
 
 @login_required(login_url="/login")

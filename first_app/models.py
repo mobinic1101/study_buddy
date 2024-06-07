@@ -10,20 +10,23 @@ from django.contrib.auth.models import User
 
 
 class Topic(models.Model):
-    name = CharField(max_length=200)
+    name = CharField(max_length=200, unique=True)
 
     def __str__(self):
         return self.name
 
 
 class Room(models.Model):
-    host = ForeignKey(to=User, on_delete=models.SET_NULL, null=True)
+    host = ForeignKey(to=User, on_delete=models.SET_NULL, null=True)  # type: ignore
     topic = ForeignKey(to=Topic, on_delete=models.SET_NULL, null=True)
     name = CharField(max_length=200)
     description = TextField(null=True, blank=True)
     participants = ManyToManyField(to=User, related_name="participants", blank=True)
     updated = DateTimeField(auto_now=True)
     created = DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created", "-updated"]
 
     def __str__(self):
         return self.name

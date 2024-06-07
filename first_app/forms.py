@@ -7,4 +7,9 @@ class RoomForm(forms.ModelForm):
         model = Room
         fields = "__all__"
         exclude = ["host", "participants"]
+        labels = {
+            "topic": "Topic:",
+            "name": "Room Name:",
+            "description": "Description:"
+        }
 
