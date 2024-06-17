@@ -21,6 +21,7 @@ def register_user(request):
             user = register_form.save(commit=False)
             user.username = user.username.lower()
             user.save()
+            UserProfile(user=user).save()
             login(request, user)
             return redirect("home")
         messages.error(request, "an error ocurred during processing the form.")
@@ -59,7 +60,7 @@ def logout_user(request):
 
 def home(request):
     q = request.GET.get("q")
-    q = "" if not q else q
+    q = "" if not q else q.strip()
     print(q)
 
     topics = Topic.objects.all()
@@ -222,14 +223,13 @@ def user_profile(request, primary_key):
     rooms = (
         all_rooms
         if not q
-        else Room.objects.filter(
-            Q(host__id=primary_key) & Q(topic__name__icontains=q) | Q(name__icontains=q)
+        else all_rooms.filter(
+            Q(topic__name__icontains=q) | Q(name__icontains=q)
         )
     )
     topics, topics_count = get_topics(all_rooms)
     room_messages = Message.objects.filter(user__id=primary_key)
     url = reverse("user_profile", args=primary_key)
-    print(topics_count)
 
     context = {
         "view_name": user_profile.__name__,
@@ -252,11 +252,49 @@ def update_user(request):
     if request.method == "POST":
         form = UpdateUserForm(instance=user, data=request.POST)
         if form.is_valid():
-            profile_pic = request.FILES.get("profile_pic")
-            UserProfile(user=user, image=profile_pic).save()
             form.save()
-            return redirect("user_profile", user.id)
-        messages.error(request, "an error occurred. Please try agin")
+
+        profile_pic = request.FILES.get("profile_pic")
+        print("profile_pic: ", profile_pic)
+        if profile_pic:
+            user_profile = UserProfile.objects.filter(id=user.id)
+            if user_profile.exists:
+                user_profile = user_profile.first()
+                print("user_profile exists: ", user_profile)
+                user_profile.image = profile_pic # type:ignore
+                user_profile.save() # type:ignore
+            else:
+                print("creating user_profile.")
+                UserProfile(user=user, image=profile_pic).save()
+
+        return redirect("user_profile", user.id)
 
     context = {"form": form}
     return render(request, "first_app/update_user.html", context)
+
+
+def topics(request):
+    topic_to_filter = request.GET.get("topic")
+    topic_to_filter = "" if not topic_to_filter else topic_to_filter.strip()
+    print(topic_to_filter)
+
+    topics = Topic.objects.filter(name__icontains=topic_to_filter)
+    print(topics)
+    if topics.count() > 50:
+        topics = topics[0:51]
+
+    context = {"topics": topics, "topic_name": topic_to_filter}
+
+    return render(request, "first_app/topics.html", context=context)
+
+
+@login_required(login_url="login/")
+def recent_activities(request):
+    user = request.user
+    rooms_id = user.participants.all().values_list("id", flat=True)
+    room_messages = Message.objects.filter(room__id__in=rooms_id)
+
+    context = {"room_messages": room_messages}
+    return render(request, "first_app/activity.html", context=context)
+        
+

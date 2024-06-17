@@ -1,4 +1,3 @@
-{% if request.user.is_authenticated %}
     <div class="activities">
       <div class="activities__header">
         <h2>Recent Activities</h2>
@@ -10,7 +9,7 @@
         <div class="activities__boxHeader roomListRoom__header">
           <a href="{% url 'user_profile' message.user.id %}" class="roomListRoom__author">
             <div class="avatar avatar--small">
-              <img src="https://randomuser.me/api/portraits/women/11.jpg" />
+              <img src="{{message.user.user_profile.get_image_url}}" />
             </div>
             <p>
               @{{message.user.username}}
@@ -43,7 +42,6 @@
       {% endfor %}
 
     </div>
-{% endif %}
 
 
 

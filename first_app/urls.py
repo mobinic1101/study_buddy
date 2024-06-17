@@ -18,7 +18,11 @@ urlpatterns = [
     ),
     path("user-profile/<str:primary_key>", views.user_profile, name="user_profile"),
     path("update-user", views.update_user, name="update_user"),
+    path("topics/", views.topics, name="topics"),
+    path("recent-activities/", views.recent_activities, name="recent_activities")
 ]
+
+print("first_app.urls.py initialized.")
 
 if settings.DEBUG:
     urlpatterns += static(prefix=settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

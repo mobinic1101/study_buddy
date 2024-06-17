@@ -8,8 +8,10 @@ from django.db.models import (
     ImageField,
     OneToOneField
 )
-from django.conf import settings
 from django.contrib.auth.models import User
+from django.conf.global_settings import MEDIA_ROOT
+
+import os
 
 
 class Topic(models.Model):
@@ -51,9 +53,14 @@ class Message(models.Model):
     
 class UserProfile(models.Model):
     user = OneToOneField(to=User, on_delete=models.CASCADE, related_name="user_profile")
-    image = ImageField(upload_to="profile_pics/", null=True, blank=True)
+    image = ImageField(
+        upload_to="profile_pics/", default=os.path.join(MEDIA_ROOT, "profile_pics", "avatar.svg"))
 
     @property
     def get_image_url(self):
-        return self.image_url.url
+        # if there is no profile image we use the default one.
+        url = self.image.url
+        print("ImageUrl: ", url)
+        if self.image.url:
+            return url
         
